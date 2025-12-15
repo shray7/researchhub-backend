@@ -61,13 +61,15 @@ class OrcidCallbackView(APIView):
             token_data = exchange_code_for_token(app, code)
             with transaction.atomic():
                 connect_orcid_account(user, token_data, app)
+            if author := getattr(user, "author_profile", None):
+                fetch_orcid_works_task.delay(author.id)
             return redirect(get_redirect_url(return_url=return_url))
         except User.DoesNotExist:
-            return redirect(get_redirect_url(error="invalid_state", return_url=return_url))
+            return redirect(get_redirect_url(error="This User Does Not Exist", return_url=return_url))
         except ValueError:
-            return redirect(get_redirect_url(error="already_linked", return_url=return_url))
+            return redirect(get_redirect_url(error="This ORCID ID Is Already Linked", return_url=return_url))
         except (requests.RequestException, SocialApp.DoesNotExist):
-            return redirect(get_redirect_url(error="service_error", return_url=return_url))
+            return redirect(get_redirect_url(error="This ORCID ID Is Not Valid", return_url=return_url))
 
 
 class OrcidFetchView(APIView):
