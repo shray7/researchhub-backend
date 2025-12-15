@@ -34,7 +34,7 @@ CLOUD = PRODUCTION or STAGING or CI
 TESTING = ("test" in APP_ENV) or ("test" in sys.argv) or (APP_ENV == "test")
 PYTHONPATH = "/var/app/current:$PYTHONPATH"
 DJANGO_SETTINGS_MODULE = "researchhub.settings"
-ELASTIC_BEANSTALK = APP_ENV in ["production", "staging", "development"]
+ELASTIC_BEANSTALK = APP_ENV in ["production", "staging"]
 USE_SILK = os.environ.get("USE_SILK", False)
 CONFIG = os.environ.get("CONFIG")
 
@@ -67,12 +67,16 @@ LOGGING = {
             "format": "{asctime} {levelname} {name} [{filename}:{lineno}] [{threadName}] {message}",
             "style": "{",
         },
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "fmt": "%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] [%(threadName)s] %(message)s",
+        },
     },
     "handlers": {
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "json" if ELASTIC_BEANSTALK else "verbose",
         },
     },
     "root": {
@@ -109,6 +113,7 @@ if not (PRODUCTION or STAGING):
     DEBUG = True
 
 ALLOWED_HOSTS = [
+    ".compute.amazonaws.com",
     ".elasticbeanstalk.com",
     ".researchhub.com",
     "127.0.0.1",  # localhost
@@ -443,11 +448,11 @@ if STAGING:
 
 ORCID_CLIENT_ID = os.environ.get("ORCID_CLIENT_ID", getattr(keys, "ORCID_CLIENT_ID", ""))
 ORCID_CLIENT_SECRET = os.environ.get("ORCID_CLIENT_SECRET", getattr(keys, "ORCID_CLIENT_SECRET", ""))
-ORCID_REDIRECT_URL = "http://127.0.0.1:3000/auth/orcid/callback"
+ORCID_REDIRECT_URL = "http://127.0.0.1:8000/api/orcid/callback/"
 if PRODUCTION:
-    ORCID_REDIRECT_URL = "https://researchhub.com/auth/orcid/callback"
-elif STAGING:
-    ORCID_REDIRECT_URL = "https://staging.researchhub.com/auth/orcid/callback"
+    ORCID_REDIRECT_URL = "https://backend.prod.researchhub.com/api/orcid/callback/"
+if STAGING:
+    ORCID_REDIRECT_URL = "https://backend.staging.researchhub.com/api/orcid/callback/"
 
 
 # Database
@@ -706,7 +711,7 @@ WEB3_BASE_PROVIDER_URL = os.environ.get(
 # redis://:password@hostname:port/db_number
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
-REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
 
 # Cache Settings
 if TESTING:
@@ -743,6 +748,10 @@ CELERY_TASK_IGNORE_RESULT = True
 
 CELERY_WORKER_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] [%(processName)s] %(message)s"
 CELERY_WORKER_TASK_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s [%(filename)s:%(lineno)d] [%(processName)s] %(message)s"
+
+# Use Django's root logger (JSON) if running in Beanstalk
+if ELASTIC_BEANSTALK:
+    CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 
 REDBEAT_REDIS_URL = "redis://{}:{}/2".format(REDIS_HOST, REDIS_PORT)
 REDBEAT_KEY_PREFIX = f"{APP_ENV}_redbeat_"
