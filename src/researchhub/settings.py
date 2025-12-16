@@ -448,11 +448,7 @@ if STAGING:
 
 ORCID_CLIENT_ID = os.environ.get("ORCID_CLIENT_ID", getattr(keys, "ORCID_CLIENT_ID", ""))
 ORCID_CLIENT_SECRET = os.environ.get("ORCID_CLIENT_SECRET", getattr(keys, "ORCID_CLIENT_SECRET", ""))
-ORCID_REDIRECT_URL = "http://127.0.0.1:8000/api/orcid/callback/"
-if PRODUCTION:
-    ORCID_REDIRECT_URL = "https://backend.prod.researchhub.com/api/orcid/callback/"
-if STAGING:
-    ORCID_REDIRECT_URL = "https://backend.staging.researchhub.com/api/orcid/callback/"
+ORCID_REDIRECT_URL = os.environ.get("ORCID_REDIRECT_URL", getattr(keys, "ORCID_REDIRECT_URL", ""))
 
 
 # Database

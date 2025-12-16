@@ -46,7 +46,6 @@ from user.related_models.coauthor_model import CoAuthor
 from user.related_models.follow_model import Follow
 from user.related_models.gatekeeper_model import Gatekeeper
 from utils import sentry
-from orcid.services.orcid_service import is_orcid_connected
 
 class ModeratorUserSerializer(ModelSerializer):
     verification = SerializerMethodField()
@@ -169,7 +168,7 @@ class AuthorSerializer(ModelSerializer):
         return author.orcid_id
 
     def get_orcid_connected(self, author):
-        return is_orcid_connected(author.user)
+        return author.is_orcid_connected
 
     def get_total_score(self, author):
         if author.author_score > 0:
